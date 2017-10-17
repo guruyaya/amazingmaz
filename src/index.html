@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>24 Ways</title>
+
+    <script src="https://aframe.io/releases/0.3.2/aframe.js"></script>
+    <script src="libs/aframe-extras.js"></script>
+    <script src="libs/player-small.js"></script>
+    <script src="libs/blob.js"></script>
+    <script src="musicfiles/song.js"></script>
+  <script src="https://rawgit.com/bryik/aframe-bmfont-text-component/master/dist/aframe-bmfont-text-component.min.js"></script>
+</head>
+<body>
+
+<a-scene fog="type: exponential; color: #4A529C; density: 0.07;">
+    <a-animation attribute="fog.density" begin="fade" to="0.7"></a-animation>
+    <a-assets>
+        <img id="texture-floor" src="img/map1/floor.jpg">
+        <img id="texture-wall" src="img/map1/wall.jpg">
+        <img id="texture-mem" src="img/map1/memory.jpg">
+        <img id="texture-playermap" src="img/map1/player.png">
+        <img id="texture-start" src="img/map1/startgame.jpg">
+        <img id="texture-soundOn-On" src="img/map1/SoundOn-On.png">
+        <img id="texture-soundOn-Off" src="img/map1/SoundOn-Off.png">
+        <img id="texture-soundOff-On" src="img/map1/SoundOff-On.png">
+        <img id="texture-soundOff-Off" src="img/map1/SoundOff-Off.png">
+        
+    </a-assets>
+    
+    <a-entity id="mazeMap"
+      width="1"
+    
+      geometry="primitive: plane; width: 1; height: 1"
+      material="color: white">
+          
+          <a-plane cursor-listener id="startGame" position="0 -0.37 0.1" width="0.2" height="0.08" material="src: #texture-start"></a-plane>
+          
+          <a-plane cursor-listener id="soundOn" position="-0.3 0.38 0.1" width="0.2" height="0.08" material="src: #texture-soundOn-On"></a-plane>          
+          <a-plane cursor-listener id="soundOff" position="0.3 0.38 0.1" width="0.2" height="0.08" material="src: #texture-soundOff-Off"></a-plane>
+          
+      </a-entity>
+        
+    <a-entity id="player"
+              camera
+              universal-controls="movementControls: automove, gamepad, keyboard"
+              kinematic-body
+              position="0 0 0">
+        <a-light color="#fff" distance="9" intensity="1" type="point"></a-light>
+        <a-entity cursor="fuse: true; fuseTimeout: 10"
+					position="0 0 -0.5"
+					geometry="primitive: ring; radiusInner: 0.005; radiusOuter: 0.01"
+					material="color: black; shader: flat">
+        </a-entity>
+        <a-plane id="memoryImg" 
+            material="src: #texture-mem; opacity: 0"
+            width=3
+            height=3
+            position="0 -0.3 -4">
+                <a-animation begin="show" dur="2000" easing="ease-in" attribute="position" to="0 -0.5 -1.1"></a-animation>
+                <a-animation begin="show" dur="2000" easing="ease-in" attribute="material.opacity" to="1"></a-animation>
+        </a-plane>
+    </a-entity>
+
+    <a-entity id="walls"></a-entity>
+    <a-sphere id="memoryHolder"
+                    color="#fff"
+                    material="src: #texture-mem"
+                    width=3
+                    height=3
+                    depth=3
+                    static-body>
+                        <a-animation begin="collide" dur="2000"  easing="ease-in" attribute="scale" dur="1500"
+               fill="forwards" from="1 1 1" to="0 0 0"></a-animation>
+                    </a-sphere>
+
+    <a-grid width="100" height="100" id="ground" static-body material="src: #texture-floor"></a-grid>
+    
+    <a-sky id="sky" color="#0000ff"></a-sky>
+
+    <a-light type="ambient" color="#92455E" intensity="0.1"></a-light>
+
+</a-scene>
+
+<script src="maps/map1.js"></script>
+  <script type="text/javascript">
+function startDemo() {
+  //----------------------------------------------------------------------------
+  // Music data section
+  //----------------------------------------------------------------------------
+
+  // Song data
+    
+
+  //----------------------------------------------------------------------------
+  // Demo program section
+  //----------------------------------------------------------------------------
+
+  // Initialize music generation (player).
+  var t0 = new Date();
+  var player = new CPlayer();
+  player.init(song);
+    
+  // Generate music...
+  var done = false;
+  setInterval(function () {
+    if (done) {
+      return;
+    }
+
+    done = player.generate() >= 1;
+    
+    if (done) {
+      // Put the generated song in an Audio element.
+      var wave = player.createWave();
+      var audio_src = URL.createObjectURL(new Blob([wave], {type: "audio/wav"}));
+      var playerEl = document.querySelector("#player");
+      playerEl.setAttribute("sound", "src", "url(" + audio_src + ")"); 
+      playerEl.setAttribute("sound", "autoplay", "on");
+      playerEl.setAttribute("sound", "loop", "on");
+    }
+  }, 0);
+}
+      startDemo();
+  </script>
+<script>
+     AFRAME.registerComponent('cursor-listener', {
+      init: function () {
+        this.el.addEventListener('click', function (evt) {
+            if (evt.target.id=="soundOff"){
+                document.querySelector('#soundOff').setAttribute('material', 'src', '#texture-soundOff-On');
+                document.querySelector('#soundOn').setAttribute('material', 'src', '#texture-soundOn-Off');
+            }else if (evt.target.id=="soundOn"){
+                document.querySelector('#soundOff').setAttribute('material', 'src', '#texture-soundOff-Off');
+                document.querySelector('#soundOn').setAttribute('material', 'src', '#texture-soundOn-On');
+            }else if (evt.target.id=="startGame"){
+                var mazeMapEls = document.querySelectorAll('#mazeMap, #mazeMap *');
+                for (i=0; i<mazeMapEls.length;i++){
+                    var fadeAnim = document.createElement('a-animation');
+                    fadeAnim.setAttribute('dur',"1000");
+                    fadeAnim.setAttribute('attribute', "material.opacity");
+                    fadeAnim.setAttribute('to',"0");
+                    mazeMapEls[i].appendChild(fadeAnim);
+                }
+                window.playerComponent.isMoving = true;
+            }
+        });
+      }
+  });
+// generate map
+    var playerEl = document.querySelector("#player");
+    // playerEl.sound="src: url(musicfiles/music.wav); autoplay: true"
+    AFRAME.registerComponent('automove-controls', {
+        init: function () {
+            window.playerComponent = this;
+            this.speed = 0.0;
+            this.isMoving = false;
+            this.velocityDelta = new THREE.Vector3();
+            this.isShowControls = false;
+            this.isControlsVisibale = false;
+        },
+        isVelocityActive: function () {
+            return this.isMoving;
+        },
+        getVelocityDelta: function () {
+            try{
+                this.speed = (60 - Math.abs(playerEl.getAttribute('rotation').x)) / 100;
+                this.isShowControls = ( playerEl.getAttribute('rotation').x < -60 );
+                if (this.speed < 0)
+                    this.speed = 0;
+            }catch(x){
+                this.speed = 0.0
+            }
+            this.velocityDelta.z = this.isMoving ? -this.speed : 0;
+            return this.velocityDelta.clone();
+        }
+    });
+    var getItemPos = function(x, y, width, height) {
+        return {x: (-0.40 + (0.5 / width )) + (y * 0.7 / width), 
+                y: (0.40 - (0.5 / height)) - (x * 0.7 / height ), z: 0.1};
+    }
+    
+    document.querySelector('a-scene').addEventListener('render-target-loaded', function () {
+        var WALL_SIZE = 5,
+            WALL_HEIGHT = 3;
+        var wallHolder = document.querySelector('#walls');
+        var mazeMapHolder = document.querySelector('#mazeMap');
+        var memHolder = document.querySelector('#memoryHolder');
+        var memoryImg = document.querySelector('#memoryImg');
+        var wall, mem, itemPosition, mapItem;
+
+        var mapDataParsed = mapData.split("\n");
+        var height = mapDataParsed.length;
+        
+        for (var x = 0; x < height; x++)  {
+            var yLine = mapDataParsed[x];
+            var width = yLine.length;
+            for (var y = 0; y < width; y++) {
+                var position = (x- height/2)*WALL_SIZE + ' ' + 1 + ' ' + (y-width/2)*WALL_SIZE;
+                var item = mapDataParsed[x][y];
+                if (item === "#") {
+                    // Create wall
+                    wall = document.createElement('a-box');
+                    wallHolder.appendChild(wall);
+                    wall.setAttribute('color', '#fff');
+                    wall.setAttribute('material', 'src: #texture-wall;');
+                    wall.setAttribute('width', WALL_SIZE);
+                    wall.setAttribute('height', WALL_HEIGHT);
+                    wall.setAttribute('depth', WALL_SIZE);
+                    wall.setAttribute('position', position);
+                    wall.setAttribute('static-body', '');
+                    
+                    mapItem = document.createElement('a-plane');
+                    mazeMapHolder.appendChild( mapItem );
+                    mapItem.setAttribute('color', '#000');
+                    
+                    itemPosition = getItemPos(x, y, width, height);
+                    mapItem.setAttribute('position', AFRAME.utils.coordinates.stringify(itemPosition));
+                    mapItem.setAttribute('width', 0.7 / width);
+                    mapItem.setAttribute('height', 0.7 / height);
+                    
+                }
+
+                else if (item === "P")  {
+                    // Set player position
+                    document.querySelector('#player').setAttribute('position', position);
+                    
+                    var textPos = AFRAME.utils.coordinates.parse(position);
+                    textPos.z -= 0.7;
+                    textPos.y -= 0.2;
+                    document.querySelector('#mazeMap').setAttribute('position', AFRAME.utils.coordinates.stringify(textPos));
+
+                    mapItem = document.createElement('a-plane');
+                    mazeMapHolder.appendChild( mapItem );
+                    mapItem.setAttribute('color', '#F00');
+                    mapItem.setAttribute('material', 'src: #texture-playermap;');
+
+                    itemPosition = getItemPos(x, y, width, height);
+                    mapItem.setAttribute('position', AFRAME.utils.coordinates.stringify(itemPosition));
+                    mapItem.setAttribute('width', 0.7 / width);
+                    mapItem.setAttribute('height', 0.7 / height);
+                }
+                
+                else if (item === "M")  {
+                    memoryHolder.setAttribute('position', position);
+                    
+                    
+                    mapItem = document.createElement('a-circle');
+                    mazeMapHolder.appendChild( mapItem );
+                    mapItem.setAttribute('color', '#F00');
+
+                    itemPosition = getItemPos(x, y, width, height);
+                    mapItem.setAttribute('position', AFRAME.utils.coordinates.stringify(itemPosition));
+                    mapItem.setAttribute('radius', 0.225 / height);
+                    
+                }
+                
+            }
+        }
+        memoryHolder.addEventListener('collide', function(e) {
+            window.playerComponent.isMoving=false;
+            playerComponent.speed=0; 
+        });
+        memoryHolder.addEventListener('animationend', function (e) {
+           var scene = document.querySelector('a-scene')
+           scene.emit('fade');
+           memoryImg.emit('show');
+        });
+    });
+
+</script>
+</body>
+</html>
